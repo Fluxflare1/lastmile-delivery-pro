@@ -18,13 +18,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party
-    'rest_framework',
-    'corsheaders',
-    'django_tenants',
-
-    # Local apps
-    'apps.accounts',
+    
+    "rest_framework",
+    "corsheaders",
+    "rest_framework_simplejwt",
+    "apps.accounts",
 ]
 
 MIDDLEWARE = [
@@ -94,4 +92,19 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # CORS
+CORS_ALLOW_ALL_ORIGINS = True
+
+
+
+
+
+
+AUTH_USER_MODEL = "accounts.User"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
 CORS_ALLOW_ALL_ORIGINS = True
