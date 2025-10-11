@@ -52,3 +52,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ])
         instance.save()
         return instance
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = '__all__'
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Address.objects.create(user=user, **validated_data)
