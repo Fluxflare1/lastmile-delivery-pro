@@ -61,3 +61,31 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class Address(models.Model):
+    ADDRESS_TYPE_CHOICES = [
+        ('home', 'Home'),
+        ('work', 'Work'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
+    address_type = models.CharField(max_length=20, choices=ADDRESS_TYPE_CHOICES, default='home')
+    address_line_1 = models.CharField(max_length=255)
+    address_line_2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, default="Nigeria")
+    zip_code = models.CharField(max_length=20, blank=True, null=True)
+    is_default_sender = models.BooleanField(default=False)
+    is_default_receiver = models.BooleanField(default=False)
+    instructions = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.address_type.title()} - {self.address_line_1}, {self.city}"
