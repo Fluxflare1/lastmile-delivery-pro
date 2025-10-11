@@ -1,9 +1,9 @@
-from rest_framework import generics, permissions, status, parsers
+from rest_framework import generics, permissions, status, parsers, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, UserProfileSerializer
-from .models import User
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, UserProfileSerializer, AddressSerializer
+from .models import User, Address
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -63,3 +63,10 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def patch(self, request, *args, **kwargs):
         """Partial update profile"""
         return self.put(request, *args, **kwargs)
+
+class AddressViewSet(viewsets.ModelViewSet):
+    serializer_class = AddressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
