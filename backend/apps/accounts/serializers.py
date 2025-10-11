@@ -7,7 +7,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["email", "phone", "user_type", "default_role", "password"]
+        fields = ["email", "phone", "user_type", "default_role", "password", "full_name"]
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
@@ -26,4 +26,29 @@ class LoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "phone", "user_type", "default_role", "profile_complete", "created_at"]
+        fields = [
+            "id", "email", "phone", "user_type", "default_role", 
+            "profile_complete", "created_at", "full_name", "profile_image"
+        ]
+        read_only_fields = ["id", "email", "created_at"]
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'full_name', 'phone', 'profile_image',
+            'user_type', 'default_role', 'profile_complete'
+        ]
+        read_only_fields = ['id', 'email']
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Update profile_complete status
+        instance.profile_complete = all([
+            instance.full_name,
+            instance.phone,  # Note: using 'phone' not 'phone_number'
+        ])
+        instance.save()
+        return instance
