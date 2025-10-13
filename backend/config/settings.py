@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "apps.accounts",
 ]
 
+# MERGED MIDDLEWARE - Add new middlewares to existing
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -37,6 +38,15 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    
+    # ADD NEW MIDDLEWARES HERE
+    "apps.core.middleware.CorrelationIdMiddleware",
+    "apps.core.middleware.TenantMiddleware",
+    "apps.core.middleware.CurrentUserMiddleware",
+    "apps.core.middleware.RequestLoggingMiddleware",
+    "apps.core.middleware.SecureMediaMiddleware",
+    
+    # Keep your existing custom middleware
     "apps.core.middleware.MultiChannelMiddleware",
 ]
 
@@ -112,3 +122,21 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ADD NEW LOGGING CONFIGURATION
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
+    },
+    'loggers': {
+        'core.middleware': {'handlers': ['console'], 'level': 'INFO'},
+    },
+}
