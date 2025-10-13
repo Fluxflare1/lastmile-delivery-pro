@@ -7,26 +7,25 @@ services:
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - ./backend:/app
-      - media_data:/app/media
-    env_file:
-      - ./backend/.env
+      - ./backend/media:/app/media
+      - ./backend/staticfiles:/app/staticfiles
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     depends_on:
       - db
       - redis
 
   db:
     image: postgres:15
-    container_name: lastmile_db
-    environment:
-      - POSTGRES_DB=lastmile_db
-      - POSTGRES_USER=lastmile_user
-      - POSTGRES_PASSWORD=lastmile_pass
+    container_name: lastmile_postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   redis:
     image: redis:7
@@ -36,4 +35,3 @@ services:
 
 volumes:
   postgres_data:
-  media_data:
