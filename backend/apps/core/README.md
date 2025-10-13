@@ -1,354 +1,274 @@
 Perfect ✅
 
-Here’s the production-grade backend/apps/core/README.md — a comprehensive developer document that explains the purpose, architecture, and integration pattern of the Core module, which acts as the “foundation layer” for all other Django apps in Last Mile Delivery Services Pro (LMDSP).
+Below is the production-grade README.md for
+
+📄 backend/apps/core/README.md
+
+This document explains how the Core module functions as the backbone of the backend,
+defines reusable base models and middleware, and describes how every module — backend and frontend — depends on it.
 
 
 ---
 
 📘 backend/apps/core/README.md
 
-# Core Module – Shared Foundation Layer
+# 🧩 Core Module — Last Mile Delivery Services Pro (LMDSP)
 
-## 📦 Overview
-
-The **Core Module** is the **foundation of the entire backend system** for the Last Mile Delivery Services Pro (LMDSP) platform.  
-
-It defines **shared models, utilities, middleware, mixins, and base logic** that power all other modules — ensuring consistency, scalability, and reusability across multi-tenant contexts (LMDSP and DCSD ecosystems).
-
-All Django apps such as `accounts`, `orders`, `couriers`, `billing`, etc. **inherit from `core` base classes** for standard behavior like timestamps, soft deletion, audit tracking, tenant ownership, and common utilities.
+**Path:** `backend/apps/core/`
 
 ---
 
-## 🏗️ Directory Structure
+## 🎯 Purpose
 
-backend/apps/core/ │ ├── init.py ├── apps.py ├── models.py             # Base models, mixins, and utilities ├── middleware.py         # Tenant-aware request processing, logging ├── utils.py              # Helper utilities, common functions ├── exceptions.py         # Custom error handlers ├── permissions.py        # Global permission mixins ├── management/ │   └── commands/ │       └── seed_roles.py # Example for initializing roles or tenants ├── tests/ │   └── test_core_models.py └── README.md
+The **Core module** defines the shared building blocks and global middleware that ensure consistency, traceability, and tenant-aware operations across the entire platform.  
+All backend modules (`accounts`, `orders`, `billing`, `notifications`, `couriers`, etc.) depend on this layer.
 
----
+It acts as the **foundation** for:
 
-## ⚙️ Core Responsibilities
-
-- Define **base model mixins** (`TimeStampedModel`, `SoftDeleteModel`, `TenantAwareModel`)
-- Implement **multi-tenant request middleware**
-- Manage **media handling** and shared storage utilities
-- Define **audit trails** (created_by, updated_by)
-- Provide **global error handlers**
-- Enforce **unified permission structure**
-- Offer **utility methods** for common backend logic
+- Shared abstract models (`BaseModel`, `TenantBaseModel`, `AuditModel`)
+- Global request context and tenant management
+- Middleware for logging, correlation IDs, and secure media
+- Cross-module utilities and constants
 
 ---
 
-## 🧩 Key Components
+## 📁 Directory Structure
 
-### 1. Base Models
+backend/apps/core/ ├── init.py ├── models.py ├── middleware.py └── README.md
 
-#### `TimeStampedModel`
-Every model that inherits from this automatically gets:
-- `created_at`
-- `updated_at`
-- Automatic ordering by `-created_at`
+---
 
+## 🧱 Core Components
+
+### 1️⃣ Base Models (`models.py`)
+
+Defines foundational Django ORM classes used throughout the system.
+
+| Class | Description | Used By |
+|-------|--------------|---------|
+| `TimeStampedModel` | Adds `created_at`, `updated_at` fields | All models |
+| `AuditModel` | Adds `created_by`, `updated_by` user tracking | Accounts, Orders, Billing |
+| `TenantBaseModel` | Enforces tenant ownership via `tenant` FK | Multi-tenant modules |
+| `SoftDeleteModel` | Implements logical deletion (is_active flag) | Couriers, Clients, etc. |
+
+**Integration Example**
 ```python
-class TimeStampedModel(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+from apps.core.models import TenantBaseModel, AuditModel
 
-    class Meta:
-        abstract = True
-        ordering = ['-created_at']
+class Order(TenantBaseModel, AuditModel):
+    tracking_number = models.CharField(max_length=32, unique=True)
+    status = models.CharField(max_length=20)
 
-SoftDeleteModel
+> 💡 When a model inherits from TenantBaseModel, all queries are automatically filtered by the current tenant resolved via middleware.
 
-Adds soft deletion support (mark as deleted without removing data).
-
-class SoftDeleteModel(models.Model):
-    is_deleted = models.BooleanField(default=False)
-
-    def delete(self, using=None, keep_parents=False):
-        self.is_deleted = True
-        self.save()
-
-    class Meta:
-        abstract = True
-
-TenantAwareModel
-
-Provides multi-tenant awareness for models under LMDSP and DCSD contexts.
-
-class TenantAwareModel(models.Model):
-    tenant = models.ForeignKey('accounts.Tenant', on_delete=models.CASCADE, related_name='%(class)s_tenant')
-    
-    class Meta:
-        abstract = True
-
-Used by modules such as:
-
-orders (Order belongs to tenant)
-
-couriers (Courier belongs to tenant)
-
-billing (Invoices scoped to tenant)
 
 
 
 ---
 
-2. Middleware
+2️⃣ Middleware (middleware.py)
 
-TenantMiddleware
+Implements five enterprise-grade middlewares:
 
-Determines tenant context for every request.
+Middleware	Function	Frontend Connection
 
-Responsibilities:
-
-Read subdomain or header (X-Tenant-ID)
-
-Set request.tenant context
-
-Enforce tenant isolation for all queries
+TenantMiddleware	Resolves tenant context (X-Tenant-ID header or subdomain)	Frontend must include tenant header
+CorrelationIdMiddleware	Injects a unique X-Correlation-ID for tracing	Included in every request header
+RequestLoggingMiddleware	Logs all requests with user and duration	Aids performance monitoring
+SecureMediaMiddleware	Enforces media file access control by tenant	Protects profile images and docs
+CurrentUserMiddleware	Tracks the authenticated user for audit fields	Enables auto created_by tracking
 
 
-class TenantMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
+Frontend Example (Next.js API client):
 
-    def __call__(self, request):
-        tenant_header = request.headers.get('X-Tenant-ID')
-        if tenant_header:
-            from apps.accounts.models import Tenant
-            try:
-                request.tenant = Tenant.objects.get(uuid=tenant_header)
-            except Tenant.DoesNotExist:
-                request.tenant = None
-        response = self.get_response(request)
-        return response
+axios.interceptors.request.use((config) => {
+  config.headers['X-Tenant-ID'] = process.env.NEXT_PUBLIC_TENANT_ID;
+  config.headers['X-Correlation-ID'] = crypto.randomUUID();
+  return config;
+});
 
 
 ---
 
-3. Utilities (utils.py)
+3️⃣ Tenant Context
 
-Shared helper functions used across modules.
+Each API request carries tenant information from either:
 
-Function	Purpose
+Header → X-Tenant-ID
 
-generate_unique_code(prefix)	Generate tracking codes, invoice numbers
-send_async_email(subject, message, to)	Async email via Celery
-upload_to(instance, filename)	Standardized media upload path
-get_client_ip(request)	Extract client IP for audit/logs
-paginate_queryset(queryset, request)	Shared pagination logic for DRF views
+Subdomain → tenant-name.lmdsp.com
 
 
+The TenantMiddleware resolves this and attaches:
 
----
+request.tenant  # <Tenant: DHL Nigeria>
+connection.tenant = request.tenant
 
-4. Permissions (permissions.py)
+This ensures:
 
-Defines reusable permission mixins.
+Automatic ORM filtering per tenant
 
-from rest_framework.permissions import BasePermission
+Isolation of customer data
 
-class IsTenantAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in ['LMDSP_ADMIN', 'DCSD_ADMIN']
-
-Used across:
-
-orders.views
-
-billing.views
-
-couriers.views
+Correct media routing
 
 
 
 ---
 
-5. Exception Handling (exceptions.py)
+4️⃣ Audit Trail
 
-Provides standardized error responses across all APIs.
+Every model inheriting AuditModel automatically captures:
 
-from rest_framework.views import exception_handler
+created_by — set from request.current_user
 
-def custom_exception_handler(exc, context):
-    response = exception_handler(exc, context)
-    if response is not None:
-        response.data['status_code'] = response.status_code
-        response.data['error'] = str(exc)
-    return response
+updated_by — updated during save
 
-Integrated via:
+created_at / updated_at — timestamps
 
-REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',
-}
+
+These fields are populated by CurrentUserMiddleware.
+
+Example:
+
+order = Order.objects.create(..., created_by=request.current_user)
 
 
 ---
 
-🧱 Integration with Other Modules
+5️⃣ Secure Media Layer
 
-Module	Dependency	How It Integrates
+SecureMediaMiddleware ensures:
 
-Accounts	Inherits TimeStampedModel, TenantAwareModel	For User, Profile, Tenant
-Orders	Uses all core mixins	Tracks tenant, timestamps, and soft deletion
-Billing	Extends TenantAwareModel	Invoices and transactions scoped per tenant
-Couriers	Uses SoftDeleteModel, TenantAwareModel	Maintains courier data consistency
-Notifications	Uses utilities	Email, SMS, and logging helpers
-Analytics	Uses base models for unified data timestamps	Consistent metric aggregation
+Only authenticated users access media URLs
 
+Tenants can only view their own files (/media/<tenant_uuid>/...)
+
+Unauthorized access returns 403 Forbidden
 
 
----
-
-🧩 Frontend Integration Context
-
-While the Core app doesn’t directly expose API endpoints to the frontend, it defines the global behaviors that affect frontend interaction consistency:
-
-Feature	Frontend Impact
-
-Tenant middleware	Ensures correct data isolation per organization in API calls
-Soft delete model	Enables frontend to show “archived” instead of permanently deleted items
-Standard timestamps	Used by dashboards to display "Created at" and "Updated at" info
-Consistent error responses	Allows frontend to display standard toast notifications or modals
-Pagination utility	All API list endpoints return uniform pagination format
-
+This connects to profile image uploads, proof-of-delivery images, and other sensitive assets.
 
 
 ---
 
-🌐 Example Usage in Other Modules
+🧩 Cross-Module Dependencies
 
-In accounts.models
+Consuming Module	Uses from core	Purpose
 
-from apps.core.models import TimeStampedModel, TenantAwareModel
-
-class User(AbstractBaseUser, TimeStampedModel, TenantAwareModel):
-    ...
-
-In orders.models
-
-from apps.core.models import SoftDeleteModel
-
-class Order(SoftDeleteModel):
-    tracking_number = models.CharField(max_length=100)
-    ...
-
-
----
-
-⚡ Multi-Channel & Multi-Tenant Support
-
-Tenant Handling
-
-Each API request includes a header:
-
-X-Tenant-ID: <tenant_uuid>
-
-Automatically bound to every created record via TenantAwareModel.
-
-
-Media Handling
-
-Media files (like courier photos, proof of delivery, etc.) stored under:
-
-/media/<tenant_uuid>/<model_name>/<filename>
+accounts	AuditModel, TenantBaseModel	User, Tenant, and Role models
+orders	TenantBaseModel, AuditModel	Order lifecycle and ownership
+billing	AuditModel	Invoice and transaction tracking
+couriers	SoftDeleteModel, AuditModel	Courier profile, license management
+notifications	Middleware context (tenant, correlation_id)	Tenant-specific alerts
+analytics	Models base timestamps	Operational reporting consistency
 
 
 
 ---
 
-🧠 Design Principles
+🔌 Frontend Integration
 
-1. DRY Architecture: All shared behaviors defined here, not repeated elsewhere.
+Each frontend app — Customer App, Courier App, DCSD Panel, Client Portal — communicates through the shared API Gateway powered by Django REST Framework and Core middleware.
 
+Frontend App	Required Headers	Purpose
 
-2. Scalability: Each tenant and module remains independent but interoperable.
-
-
-3. Consistency: Unified timestamping, deletion logic, and error patterns.
-
-
-4. Security: Enforces strict tenant isolation for all database operations.
-
+Customer App	X-Tenant-ID, X-Correlation-ID	Tracks tenant (LMDSP branch)
+Courier App	X-Tenant-ID	Assigns courier to tenant route
+Client Portal	X-Tenant-ID, Authorization	Enforces client-specific data scope
+Admin Portal	Authorization	Platform-level access
 
 
 
 ---
 
-🧰 Developer Setup
+🧰 Setup Notes
 
-1. Add Middleware in settings.py
+1. Enable Middleware in settings.py:
 
-MIDDLEWARE = [
-    ...,
+MIDDLEWARE += [
+    'apps.core.middleware.CorrelationIdMiddleware',
     'apps.core.middleware.TenantMiddleware',
+    'apps.core.middleware.CurrentUserMiddleware',
+    'apps.core.middleware.RequestLoggingMiddleware',
+    'apps.core.middleware.SecureMediaMiddleware',
 ]
 
-2. Add Exception Handler
 
-REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',
-}
+2. Media Folder in Docker Volume:
 
-3. Import in Models
+Mounted at /media
 
-All new models should extend from one or more base classes:
+Isolated by tenant UUID
 
-from apps.core.models import TimeStampedModel, TenantAwareModel
+Example: /media/<tenant_uuid>/profile_pics/...
 
 
----
 
-🧪 Testing
+3. Audit Auto-Tracking:
 
-Run tests for shared models and utilities:
+Relies on request.current_user from middleware
 
-pytest apps/core/tests/
+Works automatically for all DRF serializers inheriting from AuditModel
 
-Includes:
 
-Timestamp integrity tests
-
-Tenant isolation
-
-Soft delete validation
-
-Custom exception handler checks
 
 
 
 ---
 
-🔄 Future Enhancements
+🧩 Summary
 
-Add AuditTrailModel for logging user activity
+Layer	Responsibility	Used By
 
-Implement RequestIDMiddleware for traceability
-
-Introduce EventLogger for Celery task monitoring
-
-Add unified caching layer for frequently accessed data
-
-
-
----
-
-📬 Developer Notes
-
-Do not modify this module casually.
-It underpins all system-wide functionality.
-
-When introducing new base models or utilities, ensure backward compatibility.
-
-Any frontend or API inconsistency should be reviewed here first.
+Base Models	Standardizes fields, timestamps, ownership	All data models
+Middleware	Context injection, logging, security	All requests
+Tenant Context	Multi-tenant data separation	Every app
+Audit Trail	Tracks who/when data changes	Compliance, analytics
+Secure Media	Protects file access	Profiles, PODs, Documents
 
 
 
 ---
 
-© 2025 Last Mile Delivery Services Pro – Core Infrastructure Module
+📡 Backend ↔ Frontend Data Flow
+
+Frontend (Next.js Apps)
+  │
+  ├─ sends →  X-Tenant-ID, X-Correlation-ID, JWT
+  │
+  ▼
+Backend (Django + DRF + Core Middleware)
+  │
+  ├─ TenantMiddleware → identifies tenant
+  ├─ CurrentUserMiddleware → tracks user
+  ├─ RequestLoggingMiddleware → logs activity
+  └─ SecureMediaMiddleware → controls access
+  │
+  ▼
+Database (PostgreSQL + Tenant Schema Isolation)
+
 
 ---
 
-Would you like me to proceed next with generating the **backend/apps/core/models.py** (full production code implementing all base classes and mixins described in this README)?
+🏁 Key Takeaways
+
+The Core module is mandatory for all features.
+
+It guarantees multi-tenant security, auditable data, and traceable operations.
+
+All modules, serializers, and APIs must import models from core.models for consistency.
+
+All frontend requests must include tenant and correlation headers for correct routing and observability.
+
+
+
+---
+
+Next Step:
+Proceed to implement the Customer App Backend Layer, which will consume the core base models and middleware for user context, tenant ownership, and audit trail management.
+
+---
+
+Would you like me to now generate the **production-ready backend code** for the **Customer App Backend Layer** (Phase 2) — including models, serializers, views, and endpoints using this Core foundation?
 
