@@ -11,3 +11,12 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+
+
+// frontend/src/lib/api.ts
+axios.interceptors.request.use((config) => {
+  config.headers['X-Tenant-ID'] = process.env.NEXT_PUBLIC_TENANT_ID || 'global';
+  config.headers['X-Correlation-ID'] = crypto.randomUUID();
+  return config;
+});
