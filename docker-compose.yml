@@ -1,53 +1,39 @@
 version: "3.9"
 
 services:
-  db:
-    image: postgres:15
-    container_name: lastmile_db
-    restart: always
-    environment:
-      POSTGRES_USER: lastmile
-      POSTGRES_PASSWORD: lastmile@123
-      POSTGRES_DB: lastmile
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  redis:
-    image: redis:7
-    container_name: lastmile_redis
-    restart: always
-    ports:
-      - "6379:6379"
-
-  backend:
+  web:
     build: ./backend
     container_name: lastmile_backend
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - ./backend:/app
-      - ./backend/media:/app/media  # Added for profile image uploads
+      - media_data:/app/media
+    env_file:
+      - ./backend/.env
     ports:
       - "8000:8000"
     depends_on:
       - db
       - redis
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings
-      - DATABASE_URL=postgres://lastmile:lastmile@db:5432/lastmile
-      - REDIS_URL=redis://redis:6379
 
-  frontend:
-    build: ./frontend
-    container_name: lastmile_frontend
-    command: npm run dev
+  db:
+    image: postgres:15
+    container_name: lastmile_db
+    environment:
+      - POSTGRES_DB=lastmile_db
+      - POSTGRES_USER=lastmile_user
+      - POSTGRES_PASSWORD=lastmile_pass
     volumes:
-      - ./frontend:/app
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+      - "5433:5432"
+
+  redis:
+    image: redis:7
+    container_name: lastmile_redis
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres_data:
+  media_data:
