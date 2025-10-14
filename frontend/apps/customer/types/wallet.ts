@@ -5,6 +5,7 @@ export interface WalletAccount {
   currency: string;
   owner_name: string;
   account_type: string;
+  dva?: WalletDVA; // ← add DVA info
 }
 
 export interface WalletTransaction {
@@ -29,4 +30,13 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   error?: string;
+}
+
+
+export interface WalletDVA {
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  provider: "PAYSTACK";
+  status: "ACTIVE" | "INACTIVE";
 }
