@@ -62,3 +62,38 @@ Headers:
   "X-Tenant-ID": "<tenant_uuid>",
   "Content-Type": "multipart/form-data"
 }
+
+
+
+
+# Customer App (LMDSP)
+
+## Overview
+This module manages **customer data** for the Last-Mile Delivery Service Provider (LMDSP) flow, focusing on address management for pickup/delivery.
+
+## Features
+- CRUD for saved addresses
+- Default address logic (one per user)
+- Geo-coded locations
+- Integrated with authentication (`accounts`)
+- Extensible for delivery creation
+
+## Dependencies
+- `apps.accounts` for user data
+- `apps.core` for BaseModel
+- Future link to order & shipment modules
+
+## API Endpoints
+| Method | Endpoint | Description |
+|--------|-----------|-------------|
+| GET | `/api/customers/addresses/` | List user addresses |
+| POST | `/api/customers/addresses/` | Add new address |
+| PUT/PATCH | `/api/customers/addresses/{id}/` | Update address |
+| DELETE | `/api/customers/addresses/{id}/` | Delete address |
+
+## Frontend Integration
+Frontend (`Next.js`) will consume these endpoints through:
+`frontend/src/features/customer-app/services/addressService.ts`
+
+## Next Backend Phase
+Shipment & Booking Layer (links addresses + user + LMDSP provider)
