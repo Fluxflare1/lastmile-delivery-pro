@@ -1,13 +1,17 @@
 import React from "react";
 import { useWallet } from "../../hooks/useWallet";
 import { WalletTransactionExport } from "./WalletTransactionExport";
+import { WalletTransactionFilter } from "./WalletTransactionFilter";
 
 export const WalletTransactions: React.FC = () => {
-  const { transactionsQuery } = useWallet();
+  const { 
+    transactionsQuery, 
+    setFilters,
+    clearFilters,
+    filters 
+  } = useWallet();
+  
   const { data, isLoading, error } = transactionsQuery;
-
-  // ✅ FIX: Use narration instead of description (matches your backend)
-  // ✅ FIX: Proper transaction type handling with signs
 
   return (
     <div className="bg-white p-5 rounded-2xl shadow">
@@ -15,6 +19,13 @@ export const WalletTransactions: React.FC = () => {
         <h2 className="text-lg font-semibold">Transaction History</h2>
         <WalletTransactionExport />
       </div>
+
+      {/* ✅ ADDED: Filter component from new code */}
+      <WalletTransactionFilter 
+        onFilterChange={setFilters}
+        onClearFilters={clearFilters}
+        currentFilters={filters}
+      />
 
       {isLoading ? (
         <p className="text-gray-500 animate-pulse">Loading transactions...</p>
@@ -76,11 +87,40 @@ export const WalletTransactions: React.FC = () => {
               ))}
             </tbody>
           </table>
+          
+          {/* ✅ ADDED: Filter active indicator */}
+          {Object.keys(filters).length > 0 && (
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-gray-600">
+                Showing filtered results ({data.length} transactions)
+              </span>
+              <button
+                onClick={clearFilters}
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </div>
       ) : (
-        <p className="text-gray-500 text-center py-8">
-          No transactions found. Your transaction history will appear here.
-        </p>
+        <div className="text-center py-8">
+          {Object.keys(filters).length > 0 ? (
+            <>
+              <p className="text-gray-500 mb-2">No transactions match your filters</p>
+              <button
+                onClick={clearFilters}
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear filters to see all transactions
+              </button>
+            </>
+          ) : (
+            <p className="text-gray-500">
+              No transactions found. Your transaction history will appear here.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
