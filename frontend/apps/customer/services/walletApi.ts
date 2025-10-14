@@ -55,7 +55,7 @@ api.interceptors.response.use(
   }
 );
 
-// Wallet Account Operations
+// ✅ Single walletApi object with all methods
 export const walletApi = {
   // Account Management
   getWalletAccount: async (): Promise<WalletAccount> => {
@@ -137,6 +137,12 @@ export const walletApi = {
 
     const response = await api.get(endpoint, { responseType: "blob" });
     saveAs(response.data, `wallet_transactions_${new Date().toISOString().split('T')[0]}.pdf`);
+  },
+
+  // ✅ ADDED: Analytics method from second implementation
+  fetchAnalytics: async (params: { start_date: string; end_date: string }): Promise<any> => {
+    const { data } = await api.get("/analytics/", { params });
+    return data;
   }
 };
 
