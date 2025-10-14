@@ -3,6 +3,7 @@ import { WalletBalanceCard } from "./WalletBalanceCard";
 import { WalletTransactions } from "./WalletTransactions";
 import { WalletTransferForm } from "./WalletTransferForm";
 import { WalletDepositModal } from "./WalletDepositModal";
+import { WalletDVADetails } from "./WalletDVADetails";
 import { useWallet } from "../../hooks/useWallet";
 
 export const WalletDashboard: React.FC = () => {
@@ -10,7 +11,11 @@ export const WalletDashboard: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <WalletBalanceCard wallet={accountQuery.data} isLoading={accountQuery.isLoading} />
+      <WalletBalanceCard
+        wallet={accountQuery.data}
+        isLoading={accountQuery.isLoading}
+      />
+      <WalletDVADetails /> {/* ← NEW DVA Section */}
       <WalletDepositModal />
       <WalletTransferForm />
       <div className="md:col-span-2">
