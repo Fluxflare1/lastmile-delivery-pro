@@ -40,3 +40,24 @@ export interface WalletDVA {
   provider: "PAYSTACK";
   status: "ACTIVE" | "INACTIVE";
 }
+
+
+
+export interface WalletTransaction {
+  id: string;
+  created_at: string;
+  description: string;
+  amount: number;
+  status: "pending" | "completed" | "failed" | "reversed";
+  type: "credit" | "debit";
+}
+
+export interface WalletTransactionFilters {
+  startDate?: string;
+  endDate?: string;
+  type?: "credit" | "debit";
+  status?: "pending" | "completed" | "failed" | "reversed";
+  minAmount?: number;
+  maxAmount?: number;
+  search?: string;
+}
