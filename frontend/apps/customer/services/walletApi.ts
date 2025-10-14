@@ -1,5 +1,5 @@
 import axios from "axios";
-import { WalletAccount, WalletTransaction, WalletTransferPayload, ApiResponse } from "../types/wallet";
+import { WalletAccount, WalletTransaction, WalletDVA, WalletTransferPayload, ApiResponse } from "../types/wallet";
 
 const api = axios.create({
   baseURL: "/api/wallet",
@@ -33,4 +33,17 @@ export const transferFunds = async (payload: WalletTransferPayload): Promise<Api
 export const depositFunds = async (amount: number): Promise<ApiResponse<any>> => {
   const { data } = await api.post<ApiResponse<any>>("/deposit/", { amount });
   return data;
+};
+
+
+
+
+export const getWalletDVA = async (): Promise<WalletDVA> => {
+  const { data } = await api.get<ApiResponse<WalletDVA>>("/dva/");
+  return data.data;
+};
+
+export const refreshWalletDVA = async (): Promise<WalletDVA> => {
+  const { data } = await api.post<ApiResponse<WalletDVA>>("/dva/refresh/");
+  return data.data;
 };
