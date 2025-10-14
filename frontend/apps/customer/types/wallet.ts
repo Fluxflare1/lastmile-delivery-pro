@@ -1,3 +1,5 @@
+// REPLACE existing with this CORRECTED version:
+
 export interface WalletAccount {
   id: string;
   account_number: string;
@@ -5,7 +7,7 @@ export interface WalletAccount {
   currency: string;
   owner_name: string;
   account_type: string;
-  dva?: WalletDVA; // ← add DVA info
+  dva?: WalletDVA;
 }
 
 export interface WalletTransaction {
@@ -15,8 +17,8 @@ export interface WalletTransaction {
   amount: number;
   balance_before: number;
   balance_after: number;
-  narration: string;
-  status: string;
+  narration: string; // ✅ CORRECT: matches backend field name
+  status: "PENDING" | "SUCCESS" | "FAILED"; // ✅ CORRECT: matches backend values
   created_at: string;
 }
 
@@ -32,7 +34,6 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-
 export interface WalletDVA {
   bank_name: string;
   account_number: string;
@@ -41,22 +42,12 @@ export interface WalletDVA {
   status: "ACTIVE" | "INACTIVE";
 }
 
-
-
-export interface WalletTransaction {
-  id: string;
-  created_at: string;
-  description: string;
-  amount: number;
-  status: "pending" | "completed" | "failed" | "reversed";
-  type: "credit" | "debit";
-}
-
+// ✅ ADD the useful filters from new code, but corrected:
 export interface WalletTransactionFilters {
   startDate?: string;
   endDate?: string;
-  type?: "credit" | "debit";
-  status?: "pending" | "completed" | "failed" | "reversed";
+  transaction_type?: "CREDIT" | "DEBIT"; // ✅ Correct field name
+  status?: "PENDING" | "SUCCESS" | "FAILED"; // ✅ Correct values
   minAmount?: number;
   maxAmount?: number;
   search?: string;
