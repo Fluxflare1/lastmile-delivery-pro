@@ -1,5 +1,6 @@
 import axios from "axios";
 import { WalletAccount, WalletTransaction, WalletDVA, WalletTransferPayload, ApiResponse } from "../types/wallet";
+import { saveAs } from "file-saver";
 
 const api = axios.create({
   baseURL: "/api/wallet",
@@ -46,4 +47,21 @@ export const getWalletDVA = async (): Promise<WalletDVA> => {
 export const refreshWalletDVA = async (): Promise<WalletDVA> => {
   const { data } = await api.post<ApiResponse<WalletDVA>>("/dva/refresh/");
   return data.data;
+};
+
+
+
+
+export const exportTransactionsCSV = async (): Promise<void> => {
+  const response = await api.get("/wallet/transactions/export/csv/", {
+    responseType: "blob",
+  });
+  saveAs(response.data, "wallet_transactions.csv");
+};
+
+export const exportTransactionsPDF = async (): Promise<void> => {
+  const response = await api.get("/wallet/transactions/export/pdf/", {
+    responseType: "blob",
+  });
+  saveAs(response.data, "wallet_transactions.pdf");
 };
