@@ -33,6 +33,18 @@ export function useWallet() {
     }
   });
 
+  // ✅ Analytics Query - ADDED FROM SECOND HOOK
+  const useWalletAnalytics = (range: { startDate: string; endDate: string }) => {
+    return useQuery({
+      queryKey: ["wallet", "analytics", range],
+      queryFn: () => walletApi.fetchAnalytics(range),
+      staleTime: 10 * 60 * 1000, // 10 minutes cache for analytics
+      onError: (error: Error) => {
+        toast.error(`Failed to load analytics: ${error.message}`);
+      }
+    });
+  };
+
   // ✅ Transfer Mutation
   const transferMutation = useMutation({
     mutationFn: (payload: WalletTransferPayload) => 
@@ -43,6 +55,7 @@ export function useWallet() {
       // ✅ Invalidate and refetch all wallet-related queries
       queryClient.invalidateQueries({ queryKey: ["wallet", "account"] });
       queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "analytics"] });
       
       // ✅ Reset filters after successful transfer
       setFilters({});
@@ -61,6 +74,7 @@ export function useWallet() {
       // ✅ Invalidate wallet data
       queryClient.invalidateQueries({ queryKey: ["wallet", "account"] });
       queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "analytics"] });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Deposit failed");
@@ -95,6 +109,7 @@ export function useWallet() {
     // Queries
     accountQuery,
     transactionsQuery,
+    useWalletAnalytics, // ✅ ADDED: Analytics hook
     
     // Mutations
     transferMutation,
@@ -114,3 +129,22 @@ export function useWallet() {
     isError: accountQuery.isError || transactionsQuery.isError
   };
 }
+
+// ✅ ALTERNATIVE: Keep as separate hook if preferred
+// If you want to keep analytics as a completely separate hook, use this instead:
+export const useWalletAnalytics = (range: { startDate: string; endDate: string }) => {
+  const queryClient = useQueryClient();
+  
+  return useQuery({
+    queryKey: ["wallet", "analytics", range],
+    queryFn: () => walletApi.fetchAnalytics(range),
+    staleTime: 10 * 60 * 1000, // 10 minutes cache for analytics
+    onError: (error: Error) => {
+      toast.error(`Failed to load analytics: ${error.message}`);
+    },
+    onSuccess: () => {
+      // Invalidate related queries when analytics update
+      queryClient.invalidateQueries({ queryKey: ["wallet", "account"] });
+    }
+  });
+};
