@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import walletApi from "../services/walletApi"; // ✅ Use consolidated API
+import walletApi from "../services/walletApi";
 import { 
   WalletTransferPayload, 
   WalletTransactionFilters 
