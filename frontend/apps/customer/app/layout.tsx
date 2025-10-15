@@ -1,10 +1,10 @@
 // frontend/apps/customer/app/layout.tsx
+import "../globals.css";
 import React from "react";
-import "../styles/globals.css";
 
 export const metadata = {
   title: "Last Mile Delivery Pro – Customer App",
-  description: "Customer portal for delivery booking, wallet, and tracking",
+  description: "Customer portal for deliveries, wallet, and tracking",
 };
 
 export default function RootLayout({
@@ -14,9 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-100 text-gray-900 antialiased">
-        {children}
-      </body>
+      <body className="bg-gray-50 text-gray-900 antialiased">{children}</body>
     </html>
   );
 }
