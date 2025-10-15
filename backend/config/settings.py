@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.accounts",
     "apps.customers",
+    "apps.wallet",
 ]
 
 # MERGED MIDDLEWARE - Add new middlewares to existing
