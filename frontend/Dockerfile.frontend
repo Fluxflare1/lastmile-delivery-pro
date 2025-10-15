@@ -1,4 +1,4 @@
-# Stage 1: Build the frontend
+# Multi-stage build for production
 FROM node:20-alpine AS builder
 WORKDIR /usr/src/app
 COPY package*.json ./
@@ -6,8 +6,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve via Nginx
 FROM nginx:1.25-alpine
-COPY --from=builder /usr/src/app/build /usr/share/nginx/html
-EXPOSE 3000
+COPY --from=builder /usr/src/app/apps/customer/out /usr/share/nginx/html
+COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 443
 CMD ["nginx", "-g", "daemon off;"]
