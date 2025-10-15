@@ -1,3 +1,4 @@
+// frontend/apps/customer/app/layout.tsx
 import React from "react";
 import "../styles/globals.css";
 
@@ -8,7 +9,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-100 text-gray-900">{children}</body>
+      <body className="bg-gray-100">{children}</body>
     </html>
   );
 }
