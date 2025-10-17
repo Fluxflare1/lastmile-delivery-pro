@@ -1,3 +1,50 @@
+
+lastmile-delivery-pro/
+├── backend/
+│   ├── Dockerfile
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── config/                 # Django project settings
+│   ├── apps/
+│   │   ├── accounts/           # Multi-tenant auth & RBAC
+│   │   ├── lmdsp/             # B2C Delivery System
+│   │   │   ├── online_orders/  # Uber-style instant delivery
+│   │   │   └── branch_ops/     # Walk-in branch operations
+│   │   ├── dcsd/              # B2B Outsourcing System
+│   │   │   ├── project_intents/ # Client project proposals
+│   │   │   ├── job_cards/      # Central execution entity
+│   │   │   └── client_management/
+│   │   ├── couriers/           # Shared courier management
+│   │   ├── orders/             # Base order models
+│   │   ├── billing/            # Payment & invoicing
+│   │   ├── notifications/      # Communications
+│   │   ├── analytics/          # Reporting & insights
+│   │   └── core/               # Utilities & middleware
+│   └── tests/
+├── frontend/
+│   ├── Dockerfile
+│   ├── next.config.js
+│   ├── package.json
+│   ├── src/
+│   │   ├── app/                # Next.js app router
+│   │   ├── components/         # Shared UI components
+│   │   ├── pages/              # Marketing site
+│   │   ├── features/
+│   │   │   ├── platform-admin/ # Super admin panel
+│   │   │   ├── lmdsp-portal/   # LMDSP admin interface
+│   │   │   ├── dcsd-portal/    # DCSD admin interface
+│   │   │   ├── client-portal/  # Business client portal
+│   │   │   ├── courier-app/    # Unified courier app
+│   │   │   └── customer-app/   # LMDSP customer app
+│   │   └── styles/
+│   └── public/
+├── docker-compose.yml
+└── docs/
+
+
+
+
+
 lastmile-delivery-pro/
 ├── backend/
 │   ├── Dockerfile
