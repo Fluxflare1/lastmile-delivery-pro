@@ -1,7 +1,7 @@
-# 🏦 Digital Wallet Module (LMDSP)
+# 🏦 Digital Wallet Module (Lastmile-delivery-pro)
 
 ## Overview
-The Wallet app serves as the **financial backbone** of the LMDSP ecosystem — powering multi-user, multi-tenant digital wallet services with Paystack DVA integration.
+The Wallet app serves as the **financial backbone** of the Lastmile-delivery-pro ecosystem — powering multi-user, multi-tenant digital wallet services with Paystack DVA integration.
 
 ---
 
