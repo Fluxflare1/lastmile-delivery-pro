@@ -1,15 +1,141 @@
 global:
-  scrape_interval: 30s
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    cluster: 'lastmile-delivery'
 
-scrape_configs:
-  - job_name: "ssl_exporter"
-    static_configs:
-      - targets: ["ssl_exporter:9219"]
-
+# Alerting configuration from Code 1
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: ["alertmanager:9093"]
+        - targets: 
+            - "alertmanager:9093"
+      scheme: http
+      timeout: 10s
+      api_version: v2
 
+# Rule files from both configurations
 rule_files:
   - "rules/ssl_alerts.yml"
+  - "rules/api_alerts.yml"
+  - "rules/infrastructure_alerts.yml"
+
+scrape_configs:
+  # API Services Monitoring
+  - job_name: "api-services"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "identity-service:8000"
+          - "tenant-service:8000"
+          - "order-service:8000"
+          - "tracking-service:8000"
+          - "payment-service:8000"
+          - "dispatch-service:8000"
+          - "notification-service:8000"
+          - "analytics-service:8000"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: prometheus:9090  # The prometheus server
+
+  # Database Monitoring
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+    scrape_interval: 30s
+    params:
+      collect[]:
+        - standard
+        - database
+        - bgwriter
+        - archiver
+
+  - job_name: "postgres-primary"
+    static_configs:
+      - targets: ["postgres-primary:5432"]
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Cache & Queue Monitoring
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+    scrape_interval: 15s
+    params:
+      check-keys: '*'
+
+  - job_name: "redis-master"
+    static_configs:
+      - targets: ["redis-master:6379"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Background Jobs Monitoring
+  - job_name: "celery"
+    static_configs:
+      - targets: ["celery-flower:5555"]
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  - job_name: "celery-workers"
+    static_configs:
+      - targets: 
+          - "celery-worker:8000"
+          - "celery-beat:8000"
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # SSL Certificate Monitoring (from Code 1)
+  - job_name: "ssl-exporter"
+    static_configs:
+      - targets: ["ssl-exporter:9219"]
+    scrape_interval: 1h  # SSL checks don't need to be as frequent
+    scrape_timeout: 30s
+
+  # Infrastructure Monitoring
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+    scrape_interval: 15s
+
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+    scrape_interval: 15s
+
+  # Prometheus Self-Monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+    scrape_interval: 30s
+
+  # Nginx Monitoring
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+    scrape_interval: 15s
+
+  # Docker Monitoring
+  - job_name: "docker"
+    static_configs:
+      - targets: ["docker-exporter:9323"]
+    scrape_interval: 30s
+
+  # Application Health Checks
+  - job_name: "health-checks"
+    metrics_path: /health
+    static_configs:
+      - targets:
+          - "identity-service:8000"
+          - "order-service:8000"
+          - "payment-service:8000"
+    scrape_interval: 30s
+    scrape_timeout: 5s
