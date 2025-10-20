@@ -19,6 +19,18 @@ services:
     networks:
       - lastmile_network
 
+    ssl_exporter:
+    image: ribbybibby/ssl-exporter:v2.3.1
+    container_name: ssl_exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9219:9219"
+    command:
+      - --targets=https://lastmile-delivery-pro.com
+      - --probe.timeout=10s
+
   postgres-replica:
     image: postgres:15-alpine
     container_name: postgres-replica
