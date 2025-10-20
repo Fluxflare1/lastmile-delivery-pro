@@ -79,20 +79,19 @@ services:
       - lastmile_network
 
   certbot:
-    image: certbot/certbot
+    build:
+      context: ./infrastructure/docker
+      dockerfile: Dockerfile.certbot
     container_name: certbot
-    restart: always
     volumes:
-      - certbot_etc:/etc/letsencrypt
-      - certbot_var:/var/lib/letsencrypt
-      - webroot:/var/www/certbot
-    command: >
-      certonly --webroot --webroot-path=/var/www/certbot
-      --email admin@lastmile-delivery-pro.com
-      --agree-tos --no-eff-email
-      -d lastmile-delivery-pro.com -d www.lastmile-delivery-pro.com
+      - ./infrastructure/docker/nginx/ssl:/etc/letsencrypt
+      - ./infrastructure/docker/nginx/ssl-data:/var/lib/letsencrypt
+      - ./infrastructure/docker/nginx/certbot:/var/www/certbot
+      - ./infrastructure/scripts:/usr/src/app/infrastructure/scripts
+    entrypoint: ["/bin/bash", "-c", "/usr/src/app/infrastructure/scripts/cron-setup.sh && cron -f"]
+    restart: unless-stopped
     networks:
-      - lastmile_network
+      - backend
 
   identity-service:
     image: ghcr.io/lastmile/identity-service:latest
