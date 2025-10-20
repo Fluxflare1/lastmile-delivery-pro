@@ -1,90 +1,170 @@
-
 lastmile-delivery-pro/
-├── backend/
-│   ├── Dockerfile
-│   ├── manage.py
-│   ├── requirements.txt
-│   ├── config/                 # Django project settings
-│   ├── apps/
-│   │   ├── accounts/           # Multi-tenant auth & RBAC
-│   │   ├── lmdsp/             # B2C Delivery System
-│   │   │   ├── online_orders/  # Uber-style instant delivery
-│   │   │   └── branch_ops/     # Walk-in branch operations
-│   │   ├── dcsd/              # B2B Outsourcing System
-│   │   │   ├── project_intents/ # Client project proposals
-│   │   │   ├── job_cards/      # Central execution entity
-│   │   │   └── client_management/
-│   │   ├── couriers/           # Shared courier management
-│   │   ├── orders/             # Base order models
-│   │   ├── billing/            # Payment & invoicing
-│   │   ├── notifications/      # Communications
-│   │   ├── analytics/          # Reporting & insights
-│   │   └── core/               # Utilities & middleware
-│   └── tests/
-├── frontend/
-│   ├── Dockerfile
-│   ├── next.config.js
-│   ├── package.json
-│   ├── src/
-│   │   ├── app/                # Next.js app router
-│   │   ├── components/         # Shared UI components
-│   │   ├── pages/              # Marketing site
-│   │   ├── features/
-│   │   │   ├── platform-admin/ # Super admin panel
-│   │   │   ├── lmdsp-portal/   # LMDSP admin interface
-│   │   │   ├── dcsd-portal/    # DCSD admin interface
-│   │   │   ├── client-portal/  # Business client portal
-│   │   │   ├── courier-app/    # Unified courier app
-│   │   │   └── customer-app/   # LMDSP customer app
-│   │   └── styles/
-│   └── public/
-├── docker-compose.yml
-└── docs/
-
-
-
-
-
-lastmile-delivery-pro/
-├── backend/
-│   ├── Dockerfile
-│   ├── manage.py
-│   ├── requirements.txt
-│   ├── config/                 # Django project settings (settings.py, urls.py, wsgi.py)
-│   ├── apps/
-│   │   ├── accounts/           # Auth, roles, user management (multi-tenant middleware)
-│   │   ├── clients/            # Direct B2B clients using the service
-│   │   ├── partners/           # Motor parks, logistics companies
-│   │   ├── couriers/           # Delivery personnel management, KPIs
-│   │   ├── orders/             # Order lifecycle: register → validate → deliver
-│   │   ├── billing/            # Payment, invoices, reconciliation
-│   │   ├── notifications/      # SMS/Email via Twilio/SendGrid
-│   │   ├── analytics/          # Reports and insights
-│   │   ├── hr/                 # Internal staff module (KPI, payroll)
-│   │   └── core/               # Common utils, mixins, RLS, middleware
-│   └── tests/
-│       └── ...                 # Unit/integration tests
-│
-├── frontend/
-│   ├── Dockerfile
-│   ├── next.config.js
-│   ├── package.json
-│   ├── src/
-│   │   ├── app/                # Next.js app router entry
-│   │   ├── components/         # Shared UI components (Tailwind + shadcn)
-│   │   ├── pages/              # Marketing/public pages
-│   │   ├── features/
-│   │   │   ├── admin-panel/             # Platform Admin UI
-│   │   │   ├── service-provider-portal/ # Partner (motor park/logistics) portal
-│   │   │   ├── client-portal/           # Corporate client portal
-│   │   │   ├── courier-app/             # Courier PWA (mobile-first)
-│   │   │   └── customer-app/            # Customer tracking/booking app
-│   │   └── styles/
-│   └── public/                # Assets (icons, logos, images)
-│
-├── docker-compose.yml
+├── 📁 backend/
+│   ├── 📁 services/
+│   │   ├── 📁 identity-service/          # Authentication & Authorization
+│   │   │   ├── src/
+│   │   │   │   ├── app/
+│   │   │   │   │   ├── models/
+│   │   │   │   │   ├── views/
+│   │   │   │   │   ├── serializers/
+│   │   │   │   │   └── middleware/
+│   │   │   │   ├── config/
+│   │   │   │   └── manage.py
+│   │   │   ├── requirements.txt
+│   │   │   └── Dockerfile
+│   │   ├── 📁 tenant-management/         # LMDSP & DCSD Tenant Management
+│   │   ├── 📁 lmdsp-order-service/       # LMDSP Order Processing
+│   │   ├── 📁 dcsd-service/              # DCSD B2B Platform
+│   │   │   ├── src/
+│   │   │   │   ├── project_intents/
+│   │   │   │   ├── job_cards/
+│   │   │   │   ├── client_management/
+│   │   │   │   ├── partner_management/
+│   │   │   │   ├── execution/
+│   │   │   │   └── analytics/
+│   │   │   └── requirements.txt
+│   │   ├── 📁 shipping-service/          # Shared Shipping Management
+│   │   ├── 📁 dispatch-service/          # Courier Dispatch & Routing
+│   │   ├── 📁 tracking-service/          # Real-time Tracking
+│   │   ├── 📁 payment-service/           # Billing & Payments
+│   │   ├── 📁 notification-service/      # Notifications
+│   │   ├── 📁 analytics-service/         # Analytics & Reporting
+│   │   └── 📁 support-service/           # Customer Support
+│   ├── 📁 api-gateway/                   # Django + NGINX
+│   ├── 📁 shared/
+│   │   ├── 📁 common/                    # Shared Django apps
+│   │   ├── 📁 utils/                     # Utility functions
+│   │   └── 📁 libs/                      # Shared libraries
+│   └── 📁 database/
+│       ├── 📁 migrations/
+│       ├── 📁 seeds/
+│       └── 📁 models/
+├── 📁 frontend/
+│   ├── 📁 marketing-site/                # Landing Page & Marketing Website
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   ├── styles/
+│   │   │   └── utils/
+│   │   ├── package.json
+│   │   ├── next.config.js
+│   │   └── tailwind.config.js
+│   ├── 📁 customer-app/                  # React Native - LMDSP B2C App
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── screens/
+│   │   │   ├── navigation/
+│   │   │   ├── services/
+│   │   │   └── utils/
+│   │   ├── package.json
+│   │   └── metro.config.js
+│   ├── 📁 client-portal/                 # Next.js - DCSD B2B Client Portal
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── project-intents/
+│   │   │   │   ├── job-cards/
+│   │   │   │   ├── analytics/
+│   │   │   │   └── settings/
+│   │   │   ├── components/
+│   │   │   │   ├── ui/                   # shadcn/ui components
+│   │   │   │   ├── forms/
+│   │   │   │   └── charts/
+│   │   │   ├── lib/
+│   │   │   └── types/
+│   │   ├── package.json
+│   │   ├── next.config.js
+│   │   └── tailwind.config.js
+│   ├── 📁 courier-app/                   # React Native - Unified Courier App
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── screens/
+│   │   │   │   ├── auth/
+│   │   │   │   ├── tasks/
+│   │   │   │   ├── tracking/
+│   │   │   │   └── earnings/
+│   │   │   ├── navigation/
+│   │   │   ├── services/
+│   │   │   └── utils/
+│   │   └── package.json
+│   ├── 📁 lmdsp-admin/                   # Next.js - LMDSP Admin Portal
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── courier-management/
+│   │   │   │   ├── order-management/
+│   │   │   │   ├── analytics/
+│   │   │   │   └── settings/
+│   │   │   └── components/
+│   │   └── package.json
+│   ├── 📁 dcsd-admin/                    # Next.js - DCSD Internal Admin
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── client-management/
+│   │   │   │   ├── partner-management/
+│   │   │   │   ├── project-intents/
+│   │   │   │   ├── job-cards/
+│   │   │   │   └── analytics/
+│   │   │   └── components/
+│   │   └── package.json
+│   └── 📁 platform-admin/                # Next.js - Super Admin Portal
+├── 📁 mobile/
+│   ├── 📁 shared/                        # Shared React Native Components
+│   │   ├── components/
+│   │   ├── navigation/
+│   │   ├── services/
+│   │   └── utils/
+│   ├── 📁 customer-app/
+│   ├── 📁 courier-app/
+│   └── 📁 driver-app/
+├── 📁 infrastructure/
+│   ├── 📁 docker/
+│   │   ├── docker-compose.yml
+│   │   ├── Dockerfile.django
+│   │   ├── Dockerfile.nextjs
+│   │   ├── Dockerfile.react-native
+│   │   └── nginx/
+│   │       ├── nginx.conf
+│   │       ├── ssl/
+│   │       └── sites-available/
+│   ├── 📁 kubernetes/
+│   │   ├── deployments/
+│   │   ├── services/
+│   │   ├── configmaps/
+│   │   └── secrets/
+│   ├── 📁 terraform/
+│   │   ├── modules/
+│   │   ├── environments/
+│   │   │   ├── dev/
+│   │   │   ├── staging/
+│   │   │   └── prod/
+│   │   └── variables.tf
+│   └── 📁 scripts/
+│       ├── deploy.sh
+│       ├── ssl-setup.sh
+│       └── backup.sh
+├── 📁 docs/
+│   ├── 📁 architecture/
+│   ├── 📁 api/
+│   ├── 📁 deployment/
+│   └── 📁 user-guides/
+├── 📁 testing/
+│   ├── 📁 unit-tests/
+│   ├── 📁 integration-tests/
+│   ├── 📁 e2e-tests/
+│   └── 📁 performance-tests/
+├── 📁 ci-cd/
+│   ├── .github/workflows/
+│   ├── Jenkinsfile
+│   └── config.yml
+├── 📁 monitoring/
+│   ├── prometheus/
+│   ├── grafana/
+│   ├── alerts/
+│   └── logs/
+├── requirements.txt
+├── package.json
 ├── README.md
-└── docs/
-    ├── API_SPEC.md
-    ├── ARCHITECTURE.md
-    └── DEPLOYMENT_GUIDE.md
+├── .env.example
+└── .gitignore
