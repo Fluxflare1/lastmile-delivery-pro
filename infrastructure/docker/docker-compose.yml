@@ -375,6 +375,9 @@ volumes:
   certbot_etc:
   certbot_var:
   webroot:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
 
 networks:
   lastmile_network:
