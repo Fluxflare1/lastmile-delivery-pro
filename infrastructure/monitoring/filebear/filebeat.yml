@@ -1,0 +1,21 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    json.add_error_key: true
+    json.message_key: log
+    processors:
+      - add_docker_metadata: ~
+      - drop_event:
+          when:
+            or:
+              - equals:
+                  stream: "stderr"
+                  log: ""
+output.logstash:
+  hosts: ["logstash:5044"]
+
+setup.template.name: "lastmile"
+setup.template.pattern: "lastmile-*"
+setup.ilm.enabled: false
+logging.to_files: false
