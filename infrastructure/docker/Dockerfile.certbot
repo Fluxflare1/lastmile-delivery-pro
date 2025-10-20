@@ -1,0 +1,12 @@
+FROM certbot/certbot:latest
+
+RUN apt-get update && apt-get install -y cron bash openssl
+
+# Copy scripts into container
+COPY ../../scripts/ssl-renew.sh /usr/src/app/infrastructure/scripts/ssl-renew.sh
+COPY ../../scripts/cron-setup.sh /usr/src/app/infrastructure/scripts/cron-setup.sh
+
+RUN chmod +x /usr/src/app/infrastructure/scripts/*.sh
+
+# Start cron service and renew loop
+CMD ["/bin/bash", "-c", "/usr/src/app/infrastructure/scripts/cron-setup.sh && cron -f"]
