@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  # ==================== DATABASE SERVICES ====================
   postgres-primary:
     image: postgres:15-alpine
     container_name: postgres-primary
@@ -18,127 +19,7 @@ services:
       retries: 5
     networks:
       - lastmile_network
-
-    ssl_exporter:
-    image: ribbybibby/ssl-exporter:v2.3.1
-    container_name: ssl_exporter
-    restart: unless-stopped
-    networks:
       - monitoring
-    ports:
-      - "9219:9219"
-    command:
-      - --targets=https://lastmile-delivery-pro.com
-      - --probe.timeout=10s
-
-# -----------------------------------------------------
-  # PROMETHEUS (Metrics Collection)
-  # -----------------------------------------------------
-  prometheus:
-    image: prom/prometheus:v2.55.0
-    container_name: prometheus
-    restart: unless-stopped
-    networks:
-      - monitoring
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
-      - prometheus_data:/prometheus
-
-  # -----------------------------------------------------
-  # ALERTMANAGER (Slack + Email)
-  # -----------------------------------------------------
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    container_name: alertmanager
-    restart: unless-stopped
-    networks:
-      - monitoring
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - alertmanager_data:/alertmanager
-
-  # -----------------------------------------------------
-  # NODE EXPORTER (Host Metrics)
-  # -----------------------------------------------------
-  node_exporter:
-    image: prom/node-exporter:v1.8.1
-    container_name: node_exporter
-    restart: unless-stopped
-    pid: "host"
-    network_mode: host
-    command:
-      - '--path.rootfs=/host'
-    volumes:
-      - /:/host:ro,rslave
-
-  # -----------------------------------------------------
-  # POSTGRES EXPORTER
-  # -----------------------------------------------------
-  postgres_exporter:
-    image: prometheuscommunity/postgres-exporter:v0.15.0
-    container_name: postgres_exporter
-    restart: unless-stopped
-    networks:
-      - monitoring
-    environment:
-      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable"
-
-  # -----------------------------------------------------
-  # REDIS EXPORTER
-  # -----------------------------------------------------
-  redis_exporter:
-    image: oliver006/redis_exporter:v1.61.0
-    container_name: redis_exporter
-    restart: unless-stopped
-    networks:
-      - monitoring
-    ports:
-      - "9121:9121"
-    environment:
-      REDIS_ADDR: redis:6379
-
-  # -----------------------------------------------------
-  # CELERY FLOWER (Queue & Task Monitoring)
-  # -----------------------------------------------------
-  flower:
-    image: mher/flower:2.0.1
-    container_name: flower
-    restart: unless-stopped
-    networks:
-      - monitoring
-      - backend
-    ports:
-      - "5555:5555"
-    environment:
-      CELERY_BROKER_URL: "redis://redis:6379/0"
-      FLOWER_BASIC_AUTH: "${FLOWER_USER}:${FLOWER_PASSWORD}"
-
-  # -----------------------------------------------------
-  # GRAFANA (Visualization)
-  # -----------------------------------------------------
-  grafana:
-    image: grafana/grafana:11.2.2
-    container_name: grafana
-    restart: unless-stopped
-    depends_on:
-      - prometheus
-    networks:
-      - monitoring
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_SERVER_ROOT_URL=https://monitor.lastmile-delivery-pro.com
-    volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-      - grafana_data:/var/lib/grafana
 
   postgres-replica:
     image: postgres:15-alpine
@@ -157,6 +38,7 @@ services:
     networks:
       - lastmile_network
 
+  # ==================== CACHE SERVICES ====================
   redis-master:
     image: redis:7-alpine
     container_name: redis-master
@@ -166,6 +48,7 @@ services:
       - redis_data:/data
     networks:
       - lastmile_network
+      - monitoring
 
   redis-sentinel:
     image: bitnami/redis-sentinel:7.2
@@ -179,41 +62,7 @@ services:
     networks:
       - lastmile_network
 
-  nginx:
-    image: nginx:latest
-    container_name: nginx-gateway
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - certbot_etc:/etc/letsencrypt
-      - certbot_var:/var/lib/letsencrypt
-      - webroot:/var/www/certbot
-    depends_on:
-      - identity-service
-      - tenant-service
-      - order-service
-      - tracking-service
-    networks:
-      - lastmile_network
-
-  certbot:
-    build:
-      context: ./infrastructure/docker
-      dockerfile: Dockerfile.certbot
-    container_name: certbot
-    volumes:
-      - ./infrastructure/docker/nginx/ssl:/etc/letsencrypt
-      - ./infrastructure/docker/nginx/ssl-data:/var/lib/letsencrypt
-      - ./infrastructure/docker/nginx/certbot:/var/www/certbot
-      - ./infrastructure/scripts:/usr/src/app/infrastructure/scripts
-    entrypoint: ["/bin/bash", "-c", "/usr/src/app/infrastructure/scripts/cron-setup.sh && cron -f"]
-    restart: unless-stopped
-    networks:
-      - backend
-
+  # ==================== APPLICATION SERVICES ====================
   identity-service:
     image: ghcr.io/lastmile/identity-service:latest
     restart: always
@@ -307,65 +156,208 @@ services:
     networks:
       - lastmile_network
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
+  # ==================== GATEWAY & SSL SERVICES ====================
+  nginx:
+    image: nginx:latest
+    container_name: nginx-gateway
     restart: always
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9090:9090"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - certbot_etc:/etc/letsencrypt
+      - certbot_var:/var/lib/letsencrypt
+      - webroot:/var/www/certbot
+    depends_on:
+      - identity-service
+      - tenant-service
+      - order-service
+      - tracking-service
     networks:
       - lastmile_network
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: always
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-grafana123}
+  certbot:
+    build:
+      context: ./infrastructure/docker
+      dockerfile: Dockerfile.certbot
+    container_name: certbot
+    volumes:
+      - ./infrastructure/docker/nginx/ssl:/etc/letsencrypt
+      - ./infrastructure/docker/nginx/ssl-data:/var/lib/letsencrypt
+      - ./infrastructure/docker/nginx/certbot:/var/www/certbot
+      - ./infrastructure/scripts:/usr/src/app/infrastructure/scripts
+    entrypoint: ["/bin/bash", "-c", "/usr/src/app/infrastructure/scripts/cron-setup.sh && cron -f"]
+    restart: unless-stopped
+    networks:
+      - lastmile_network
+
+  # ==================== MONITORING SERVICES ====================
+  ssl_exporter:
+    image: ribbybibby/ssl-exporter:v2.3.1
+    container_name: ssl_exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
     ports:
-      - "3000:3000"
+      - "9219:9219"
+    command:
+      - --targets=https://lastmile-delivery-pro.com
+      - --probe.timeout=10s
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+
+  node_exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: node_exporter
+    restart: unless-stopped
+    pid: "host"
+    network_mode: host
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres_exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    environment:
+      DATA_SOURCE_NAME: "postgresql://admin:${POSTGRES_PASSWORD}@postgres-primary:5432/lastmile_production?sslmode=disable"
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    container_name: redis_exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis://redis-master:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-redispass}"
+
+  flower:
+    image: mher/flower:2.0.1
+    container_name: flower
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - lastmile_network
+    ports:
+      - "5555:5555"
+    environment:
+      CELERY_BROKER_URL: "redis://redis-master:6379/0"
+      FLOWER_BASIC_AUTH: "${FLOWER_USER}:${FLOWER_PASSWORD}"
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: grafana
+    restart: unless-stopped
     depends_on:
       - prometheus
     networks:
-      - lastmile_network
+      - monitoring
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-grafana123}
+      - GF_SERVER_ROOT_URL=https://monitor.lastmile-delivery-pro.com
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
 
+  # ==================== ELK STACK SERVICES ====================
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
       - xpack.security.enabled=false
+      - xpack.monitoring.collection.enabled=true
+      - cluster.name=lastmile-cluster
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
       - es_data:/usr/share/elasticsearch/data
+    networks:
+      - monitoring
     ports:
       - "9200:9200"
-    networks:
-      - lastmile_network
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.13.4
+    image: docker.elastic.co/logstash/logstash:8.15.3
     container_name: logstash
-    volumes:
-      - ./monitoring/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     depends_on:
       - elasticsearch
+    volumes:
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"     # Beats input
+      - "9600:9600"     # Monitoring
+    environment:
+      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
     networks:
+      - monitoring
       - lastmile_network
 
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.3
+    container_name: filebeat
+    user: root
+    depends_on:
+      - logstash
+    volumes:
+      - ./monitoring/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - monitoring
+    command: ["--strict.perms=false"]
+
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.4
+    image: docker.elastic.co/kibana/kibana:8.15.3
     container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
     depends_on:
       - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_PUBLICBASEURL=https://logs.lastmile-delivery-pro.com
+    ports:
+      - "5601:5601"
     networks:
-      - lastmile_network
+      - monitoring
 
 volumes:
   postgres_data:
@@ -381,4 +373,6 @@ volumes:
 
 networks:
   lastmile_network:
+    driver: bridge
+  monitoring:
     driver: bridge
