@@ -12,3 +12,11 @@ export const hasAccess = (role: string, pathname: string): boolean => {
   }
   return false;
 };
+
+
+
+const roleAccessMap = {
+  Owner: ["dashboard", "orders", "couriers", "analytics", "settings"],
+  Manager: ["dashboard", "orders", "analytics"],
+  Dispatcher: ["dashboard", "orders"],
+};
