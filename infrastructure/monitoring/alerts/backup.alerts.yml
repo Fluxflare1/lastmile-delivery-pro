@@ -1,0 +1,11 @@
+groups:
+  - name: backup-alerts
+    rules:
+      - alert: BackupFailure
+        expr: time() - file_mtime("/opt/backups") > 86400
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup not updated in > 24 hours"
+          description: "Last successful backup timestamp older than 24 h"
