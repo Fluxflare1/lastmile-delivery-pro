@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Tenant, LoginCredentials } from '@/types';
 import { apiClient } from '@/lib/api';
 import { AuthService } from '@/lib/auth';
@@ -32,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData.user);
         setTenant(userData.tenant);
       } catch (error) {
-        // Token might be invalid, clear storage
         AuthService.clearTokens();
       }
     }
@@ -82,7 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: AuthService.isAuthenticated(),
   };
 
-  // Use createElement instead of JSX to avoid .tsx requirement
   return React.createElement(AuthContext.Provider, { value }, children);
 }
 
