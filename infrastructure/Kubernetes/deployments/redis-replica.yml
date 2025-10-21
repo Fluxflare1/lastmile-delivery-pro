@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-replica
+  namespace: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis-replica
+  template:
+    metadata:
+      labels:
+        app: redis-replica
+    spec:
+      containers:
+        - name: redis
+          image: bitnami/redis:7.2
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_REPLICATION_MODE
+              value: "replica"
+            - name: REDIS_MASTER_HOST
+              value: redis-master
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: REDIS_PASSWORD
