@@ -4,21 +4,198 @@ global:
   smtp_auth_username: '${SMTP_USERNAME}'
   smtp_auth_password: '${SMTP_PASSWORD}'
   smtp_require_tls: true
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
 
 route:
-  receiver: "default"
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 3h
+  routes:
+    # Backup-specific alerts
+    - receiver: 'backup-critical'
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+      match:
+        severity: 'critical'
+        team: 'backup'
+      continue: false
+    
+    # Database-specific alerts
+    - receiver: 'database-team'
+      group_wait: 10s
+      match:
+        service: ['postgres', 'redis']
+        severity: 'critical'
+    
+    # SSL certificate alerts
+    - receiver: 'ssl-critical'
+      group_wait: 10s
+      match:
+        alertname: ['SSLCertExpiringSoon', 'SSLCertExpired']
+        severity: 'critical'
+    
+    # High priority infrastructure alerts
+    - receiver: 'infra-critical'
+      group_wait: 10s
+      match:
+        severity: 'critical'
+    
+    # Warning level alerts
+    - receiver: 'default'
+      group_wait: 30s
+      match:
+        severity: 'warning'
+    
+    # Everything else
+    - receiver: 'default'
+      group_wait: 30s
+
+inhibit_rules:
+  # Don't alert for warnings when critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+  
+  # Don't alert for database warnings when critical database alerts are firing
+  - source_match:
+      severity: 'critical'
+      service: 'postgres'
+    target_match:
+      severity: 'warning'
+      service: 'postgres'
+    equal: ['alertname']
 
 receivers:
-  - name: "default"
+  # Default receiver for general alerts
+  - name: 'default'
     slack_configs:
-      - api_url: "${SLACK_WEBHOOK_URL}"
-        channel: "#alerts"
+      - channel: '#alerts'
         send_resolved: true
-        title: "{{ .CommonAnnotations.summary }}"
-        text: "{{ .CommonAnnotations.description }}"
+        title: '{{ template "slack.default.title" . }}'
+        text: '{{ template "slack.default.text" . }}'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        username: 'AlertManager'
+        icon_emoji: '🚨'
+        actions:
+          - type: button
+            text: 'View in Grafana'
+            url: 'https://monitor.lastmile-delivery-pro.com'
+          - type: button
+            text: 'Silence Alerts'
+            url: '{{ template "slack.default.silenceURL" . }}'
     email_configs:
-      - to: "${EMAIL_TO}"
+      - to: '${EMAIL_TO}'
         send_resolved: true
+        subject: '{{ template "email.default.subject" . }}'
+        body: '{{ template "email.default.body" . }}'
+        headers:
+          priority: 'high'
+
+  # Backup-specific critical alerts
+  - name: 'backup-critical'
+    slack_configs:
+      - channel: '#infra-alerts'
+        send_resolved: true
+        title: '🚨 Backup Alert - {{ .CommonLabels.alertname }}'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+        color: 'danger'
+        username: 'Backup Monitor'
+        icon_emoji: '💾'
+        actions:
+          - type: button
+            text: 'Run Backup Now'
+            url: 'https://lastmile-delivery-pro.com/backup/trigger'
+          - type: button
+            text: 'View Backup Logs'
+            url: 'https://logs.lastmile-delivery-pro.com'
+    email_configs:
+      - to: 'ops@lastmile-delivery-pro.com'
+        from: 'monitoring@lastmile-delivery-pro.com'
+        smarthost: '${SMTP_SERVER}:${SMTP_PORT}'
+        auth_username: '${SMTP_USERNAME}'
+        auth_password: '${SMTP_PASSWORD}'
+        send_resolved: true
+        subject: '🚨 CRITICAL: Backup Alert - {{ .GroupLabels.alertname }}'
+        body: |-
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          
+          Labels:
+          {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+          {{ end }}
+          
+          Annotations:
+          {{ range .Annotations.SortedPairs }}  {{ .Name }}: {{ .Value }}
+          {{ end }}
+          
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+
+  # Database team alerts
+  - name: 'database-team'
+    slack_configs:
+      - channel: '#database-alerts'
+        send_resolved: true
+        title: '🗄️ Database Alert - {{ .CommonLabels.alertname }}'
+        text: '{{ template "slack.database.text" . }}'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        username: 'DB Monitor'
+        icon_emoji: '🗄️'
+    email_configs:
+      - to: 'dba@lastmile-delivery-pro.com'
+        send_resolved: true
+        subject: '🗄️ Database Alert - {{ .GroupLabels.alertname }}'
+
+  # SSL certificate alerts
+  - name: 'ssl-critical'
+    slack_configs:
+      - channel: '#infra-alerts'
+        send_resolved: true
+        title: '🔐 SSL Alert - {{ .CommonLabels.alertname }}'
+        text: |-
+          {{ range .Alerts }}
+          *Domain:* {{ .Labels.instance }}
+          *Issue:* {{ .Annotations.summary }}
+          *Days Left:* {{ .Labels.days_left }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+        color: 'warning'
+        username: 'SSL Monitor'
+        icon_emoji: '🔐'
+    email_configs:
+      - to: 'security@lastmile-delivery-pro.com,ops@lastmile-delivery-pro.com'
+        send_resolved: true
+        subject: '🔐 SSL Certificate Alert - {{ .GroupLabels.alertname }}'
+
+  # Infrastructure critical alerts
+  - name: 'infra-critical'
+    slack_configs:
+      - channel: '#infra-alerts'
+        send_resolved: true
+        title: '🖥️ Infrastructure Alert - {{ .CommonLabels.alertname }}'
+        text: '{{ template "slack.infra.text" . }}'
+        color: 'danger'
+        username: 'Infra Monitor'
+        icon_emoji: '🖥️'
+    email_configs:
+      - to: 'oncall@lastmile-delivery-pro.com,ops@lastmile-delivery-pro.com'
+        send_resolved: true
+        subject: '🖥️ CRITICAL: Infrastructure Alert - {{ .GroupLabels.alertname }}'
+        headers:
+          priority: 'urgent'
