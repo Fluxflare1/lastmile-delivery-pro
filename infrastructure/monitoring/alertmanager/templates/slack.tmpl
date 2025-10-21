@@ -1,0 +1,37 @@
+{{ define "slack.default.title" }}{{ .CommonLabels.alertname }} - {{ .CommonLabels.severity | toUpper }}{{ end }}
+
+{{ define "slack.default.text" }}
+{{ range .Alerts }}
+*Alert:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Severity:* {{ .Labels.severity }}
+*Service:* {{ .Labels.service }}
+*Instance:* {{ .Labels.instance }}
+*Time:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+
+{{ end }}
+{{ end }}
+
+{{ define "slack.default.silenceURL" }}{{ .ExternalURL }}/#/silences/new?filter=%7B{{ range .CommonLabels.SortedPairs }}{{ .Name }}%3D"{{ .Value }}"%2C{{ end }}{{ end }}
+
+{{ define "slack.database.text" }}
+{{ range .Alerts }}
+*Database Alert:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Database:* {{ .Labels.instance }}
+*Metric:* {{ .Labels.metric }}
+*Value:* {{ .Labels.value }}
+*Time:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+{{ end }}
+{{ end }}
+
+{{ define "slack.infra.text" }}
+{{ range .Alerts }}
+*Infrastructure Alert:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Node:* {{ .Labels.instance }}
+*Service:* {{ .Labels.service }}
+*Severity:* {{ .Labels.severity }}
+*Time:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+{{ end }}
+{{ end }}
