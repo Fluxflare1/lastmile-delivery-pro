@@ -82,11 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: AuthService.isAuthenticated(),
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // Use createElement instead of JSX to avoid .tsx requirement
+  return React.createElement(AuthContext.Provider, { value }, children);
 }
 
 export function useAuth() {
