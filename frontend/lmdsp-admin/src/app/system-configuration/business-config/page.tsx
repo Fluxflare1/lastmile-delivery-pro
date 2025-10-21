@@ -1,11 +1,67 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, Package, Map, Shield, Users } from 'lucide-react';
+import { BusinessProfileForm } from '@/components/system-configuration/business-config/BusinessProfileForm';
+import { ServiceTypeConfig } from '@/components/system-configuration/business-config/ServiceTypeConfig';
+import { systemConfigAPI, BusinessProfile, ServiceType } from '@/lib/api/system-config';
 
 export default function BusinessConfigPage() {
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [profileResponse, servicesResponse] = await Promise.all([
+        systemConfigAPI.getBusinessProfile(),
+        systemConfigAPI.getServiceTypes(),
+      ]);
+      setBusinessProfile(profileResponse.data);
+      setServiceTypes(servicesResponse.data);
+    } catch (error) {
+      console.error('Failed to load business configuration:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBusinessProfileSave = (data: any) => {
+    setBusinessProfile(data);
+    loadData(); // Reload to get updated data
+  };
+
+  const handleServiceTypeSave = (data: any) => {
+    loadData(); // Reload service types
+  };
+
+  const handleServiceTypeUpdate = (id: string, data: any) => {
+    loadData(); // Reload service types
+  };
+
+  const handleServiceTypeDelete = (id: string) => {
+    setServiceTypes(prev => prev.filter(service => service.id !== id));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -50,61 +106,21 @@ export default function BusinessConfigPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Business Profile Form will be implemented in separate component */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Legal Business Name</label>
-                    <p className="text-sm text-muted-foreground">Quick Deliver NG Ltd</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Trading Name</label>
-                    <p className="text-sm text-muted-foreground">Quick Deliver</p>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Business Type</label>
-                  <p className="text-sm text-muted-foreground">Limited Liability Company</p>
-                </div>
-                <Button>Edit Business Profile</Button>
-              </div>
+              <BusinessProfileForm 
+                initialData={businessProfile || undefined}
+                onSave={handleBusinessProfileSave}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="services" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Service Type Management</CardTitle>
-              <CardDescription>
-                Configure your delivery services and offerings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-semibold">On-Demand Delivery</h4>
-                    <p className="text-sm text-muted-foreground">Intra-city same-day services</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Configure</Button>
-                    <Button size="sm">Active</Button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-semibold">Outstation Delivery</h4>
-                    <p className="text-sm text-muted-foreground">Inter-city and inter-state services</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Configure</Button>
-                    <Button variant="outline" size="sm">Inactive</Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ServiceTypeConfig
+            serviceTypes={serviceTypes}
+            onSave={handleServiceTypeSave}
+            onUpdate={handleServiceTypeUpdate}
+            onDelete={handleServiceTypeDelete}
+          />
         </TabsContent>
 
         <TabsContent value="operations" className="space-y-4">
@@ -144,6 +160,7 @@ export default function BusinessConfigPage() {
         </TabsContent>
 
         <TabsContent value="branding" className="space-y-4">
+          {/* Branding content will be implemented separately */}
           <Card>
             <CardHeader>
               <CardTitle>Brand Identity</CardTitle>
@@ -152,37 +169,16 @@ export default function BusinessConfigPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-                    QD
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Current Logo</h4>
-                    <p className="text-sm text-muted-foreground">Quick Deliver branding</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <div className="w-full h-8 bg-blue-600 rounded"></div>
-                    <p className="text-xs text-center">Primary Color</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="w-full h-8 bg-green-500 rounded"></div>
-                    <p className="text-xs text-center">Secondary Color</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="w-full h-8 bg-orange-500 rounded"></div>
-                    <p className="text-xs text-center">Accent Color</p>
-                  </div>
-                </div>
-                <Button>Configure Branding</Button>
+              <div className="text-center py-8 text-muted-foreground">
+                <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Brand identity configuration coming soon...</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="customer-facing" className="space-y-4">
+          {/* Customer-facing content will be implemented separately */}
           <Card>
             <CardHeader>
               <CardTitle>Customer-Facing Profile</CardTitle>
@@ -191,29 +187,9 @@ export default function BusinessConfigPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold">Business Description</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Reliable and fast delivery services across major cities in Nigeria. 
-                    Specializing in same-day deliveries with real-time tracking.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Service Specializations</h4>
-                  <div className="flex gap-2 mt-2">
-                    <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
-                      Same-Day Delivery
-                    </span>
-                    <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
-                      Document Delivery
-                    </span>
-                    <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
-                      E-commerce
-                    </span>
-                  </div>
-                </div>
-                <Button>Edit Customer Profile</Button>
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Customer profile configuration coming soon...</p>
               </div>
             </CardContent>
           </Card>
