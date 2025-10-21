@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+  namespace: production
+spec:
+  serviceName: postgres-replica
+  replicas: 2
+  selector:
+    matchLabels:
+      app: postgres-replica
+  template:
+    metadata:
+      labels:
+        app: postgres-replica
+    spec:
+      containers:
+        - name: postgres
+          image: bitnami/postgresql-repmgr:15
+          env:
+            - name: REPMGR_PRIMARY_HOST
+              value: postgres-primary.production.svc.cluster.local
+            - name: REPMGR_PARTNER_NODES
+              value: "postgres-primary,postgres-replica-0,postgres-replica-1"
+            - name: REPMGR_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: REPMGR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: REPMGR_PASSWORD
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
