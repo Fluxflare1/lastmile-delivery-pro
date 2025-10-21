@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { AuthProvider } from '@/hooks/use-auth'
+import { AuthProvider } from '@/lib/hooks/use-auth'  // ✅ Fixed import path
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'LMDSP Admin - Lastmile Delivery Pro',
-  description: 'Last-Mile Delivery Service Provider Administration Portal',
+  title: 'LMDSP Admin Portal',
+  description: 'Last-Mile Delivery Service Provider Administration',
 }
 
 export default function RootLayout({
