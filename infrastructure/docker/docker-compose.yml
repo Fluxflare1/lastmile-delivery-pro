@@ -359,6 +359,27 @@ services:
     networks:
       - monitoring
 
+  # -----------------------------------------------------
+  # BACKUP SERVICE (PostgreSQL + Redis + Volume Snapshots)
+  # -----------------------------------------------------
+  backup:
+    image: alpine:3.20
+    container_name: backup
+    volumes:
+      - ../scripts:/opt/backup/scripts
+      - postgres_data:/var/lib/postgresql/data:ro
+      - redis_data:/data:ro
+      - backups:/opt/backups
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+    command: ["/bin/sh","-c","crond -f -l 8"]
+    networks:
+      - lastmile_network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   postgres_replica_data:
@@ -370,6 +391,7 @@ volumes:
   prometheus_data:
   alertmanager_data:
   grafana_data:
+  backups:
 
 networks:
   lastmile_network:
