@@ -6,7 +6,8 @@ class ApiClient {
   private baseURL: string
 
   constructor() {
-    this.baseURL = process.env.API_BASE_URL || 'http://localhost:8000'
+    // Use NEXT_PUBLIC_ for client-side environment variables
+    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
     
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -23,15 +24,18 @@ class ApiClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token')
-        const tenantId = localStorage.getItem('tenant_id')
-        
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        
-        if (tenantId) {
-          config.headers['X-Tenant-ID'] = tenantId
+        // Check if we're in browser environment
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('token')
+          const tenantId = localStorage.getItem('tenant_id')
+          
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`
+          }
+          
+          if (tenantId) {
+            config.headers['X-Tenant-ID'] = tenantId
+          }
         }
 
         config.headers['X-Client-Version'] = '1.0.0'
@@ -53,20 +57,24 @@ class ApiClient {
           originalRequest._retry = true
           
           try {
-            const refreshToken = localStorage.getItem('refresh_token')
-            const newToken = await this.refreshToken(refreshToken!)
-            
-            if (newToken) {
-              localStorage.setItem('token', newToken)
-              originalRequest.headers.Authorization = `Bearer ${newToken}`
-              return this.client(originalRequest)
+            const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null
+            if (refreshToken) {
+              const newToken = await this.refreshToken(refreshToken)
+              
+              if (newToken && typeof window !== 'undefined') {
+                localStorage.setItem('token', newToken)
+                originalRequest.headers.Authorization = `Bearer ${newToken}`
+                return this.client(originalRequest)
+              }
             }
           } catch (refreshError) {
             // Redirect to login if refresh fails
-            localStorage.removeItem('token')
-            localStorage.removeItem('refresh_token')
-            localStorage.removeItem('tenant_id')
-            window.location.href = '/auth/login'
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token')
+              localStorage.removeItem('refresh_token')
+              localStorage.removeItem('tenant_id')
+              window.location.href = '/auth/login'
+            }
             return Promise.reject(refreshError)
           }
         }
@@ -98,13 +106,15 @@ class ApiClient {
   }
 
   async logout(): Promise<void> {
-    const token = localStorage.getItem('token')
-    if (token) {
-      await this.client.post('/api/v1/auth/logout')
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token')
+      if (token) {
+        await this.client.post('/api/v1/auth/logout')
+      }
+      localStorage.removeItem('token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('tenant_id')
     }
-    localStorage.removeItem('token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('tenant_id')
   }
 
   async getCurrentUser(): Promise<any> {
