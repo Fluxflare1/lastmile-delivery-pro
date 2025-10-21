@@ -217,6 +217,13 @@ services:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
 
   alertmanager:
     image: prom/alertmanager:v0.27.0
@@ -228,7 +235,14 @@ services:
       - "9093:9093"
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/templates:/etc/alertmanager/templates:ro
       - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=https://alerts.lastmile-delivery-pro.com'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+      - '--web.route-prefix=/'
 
   node_exporter:
     image: prom/node-exporter:v1.8.1
@@ -238,8 +252,12 @@ services:
     network_mode: host
     command:
       - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
     volumes:
       - /:/host:ro,rslave
+      - /sys:/host/sys:ro
+      - /proc:/host/proc:ro
 
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter:v0.15.0
@@ -249,6 +267,9 @@ services:
       - monitoring
     environment:
       DATA_SOURCE_NAME: "postgresql://admin:${POSTGRES_PASSWORD}@postgres-primary:5432/lastmile_production?sslmode=disable"
+    command:
+      - '--web.listen-address=:9187'
+      - '--extend.query-path=/etc/postgres_exporter/queries.yaml'
 
   redis_exporter:
     image: oliver006/redis_exporter:v1.61.0
@@ -261,6 +282,10 @@ services:
     environment:
       REDIS_ADDR: "redis://redis-master:6379"
       REDIS_PASSWORD: "${REDIS_PASSWORD:-redispass}"
+    command:
+      - '--redis.addr=redis-master:6379'
+      - '--redis.password=${REDIS_PASSWORD:-redispass}'
+      - '--web.listen-address=:9121'
 
   flower:
     image: mher/flower:2.0.1
@@ -274,6 +299,12 @@ services:
     environment:
       CELERY_BROKER_URL: "redis://redis-master:6379/0"
       FLOWER_BASIC_AUTH: "${FLOWER_USER}:${FLOWER_PASSWORD}"
+    command:
+      - 'celery'
+      - 'flower'
+      - '--broker=redis://redis-master:6379/0'
+      - '--port=5555'
+      - '--basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}'
 
   grafana:
     image: grafana/grafana:11.2.2
@@ -289,10 +320,18 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-grafana123}
       - GF_SERVER_ROOT_URL=https://monitor.lastmile-delivery-pro.com
+      - GF_SERVER_ENABLE_GZIP=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
       - grafana_data:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ==================== ELK STACK SERVICES ====================
   elasticsearch:
@@ -315,6 +354,11 @@ services:
       - monitoring
     ports:
       - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.15.3
@@ -323,6 +367,7 @@ services:
       - elasticsearch
     volumes:
       - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./monitoring/logstash/config:/usr/share/logstash/config:ro
     ports:
       - "5044:5044"     # Beats input
       - "9600:9600"     # Monitoring
@@ -331,6 +376,11 @@ services:
     networks:
       - monitoring
       - lastmile_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.15.3
@@ -342,9 +392,14 @@ services:
       - ./monitoring/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat_data:/usr/share/filebeat/data
     networks:
       - monitoring
-    command: ["--strict.perms=false"]
+    command: 
+      - "--strict.perms=false"
+      - "-e"
+      - "-d"
+      - "*"
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.3
@@ -358,6 +413,11 @@ services:
       - "5601:5601"
     networks:
       - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # -----------------------------------------------------
   # BACKUP SERVICE (PostgreSQL + Redis + Volume Snapshots)
@@ -375,7 +435,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-    command: ["/bin/sh","-c","crond -f -l 8"]
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: ["/bin/sh","-c", "chmod +x /opt/backup/scripts/*.sh && crond -f -l 8"]
     networks:
       - lastmile_network
     restart: unless-stopped
@@ -392,6 +454,7 @@ volumes:
   alertmanager_data:
   grafana_data:
   backups:
+  filebeat_data:
 
 networks:
   lastmile_network:
