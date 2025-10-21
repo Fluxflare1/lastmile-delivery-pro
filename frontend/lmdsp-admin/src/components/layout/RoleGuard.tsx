@@ -1,24 +1,28 @@
 "use client";
 import React from "react";
-import { usePathname } from "next/navigation";
 import { useAuth } from "packages/shared/context/AuthContext";
-import { hasAccess } from "@/lib/roles";
 
-const RoleGuard = ({ children }: { children: React.ReactNode }) => {
-  const pathname = usePathname();
+interface RoleGuardProps {
+  children: React.ReactNode;
+  requiredRole?: string;
+}
+
+export default function RoleGuard({ children, requiredRole = "admin" }: RoleGuardProps) {
   const { user } = useAuth();
 
-  if (!user) return null;
-
-  if (!hasAccess(user.user_type, pathname)) {
-    return (
-      <div className="p-10 text-center text-red-600 font-semibold">
-        Access Denied: You don’t have permission to view this page.
-      </div>
-    );
+  // If no required role or user has the required role, show children
+  if (!requiredRole || user?.role === requiredRole) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
-};
-
-export default RoleGuard;
+  return (
+    <div className="p-6 text-center">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <h3 className="text-lg font-medium text-yellow-800">Access Denied</h3>
+        <p className="text-yellow-700">
+          You don't have permission to access this page.
+        </p>
+      </div>
+    </div>
+  );
+}
