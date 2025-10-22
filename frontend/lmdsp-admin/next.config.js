@@ -1,14 +1,17 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
-module.exports = {
+const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   webpack: (config, { dev }) => {
-    // disable cache in dev to avoid “invalid block type” and rename errors
+    // Disable cache to avoid Windows file lock issues
     if (dev) config.cache = false;
-    // make @ point to src
-    config.resolve.alias['@'] = path.join(__dirname, 'src');
+
+    // Add alias to match tsconfig.json
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     return config;
   },
 };
+
+module.exports = nextConfig;
