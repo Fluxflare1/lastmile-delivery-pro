@@ -1,13 +1,14 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
-const nextConfig = {
+module.exports = {
   reactStrictMode: true,
   swcMinify: true,
-  webpack: (config) => {
-    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
+  webpack: (config, { dev }) => {
+    // disable cache in dev to avoid “invalid block type” and rename errors
+    if (dev) config.cache = false;
+    // make @ point to src
+    config.resolve.alias['@'] = path.join(__dirname, 'src');
     return config;
   },
 };
-
-module.exports = nextConfig;
