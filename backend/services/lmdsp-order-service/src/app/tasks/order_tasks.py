@@ -1,6 +1,7 @@
 from celery import shared_task
 from app.models.order import Order
 from app.utils.service_clients import notify_dispatch_service, update_tracking, send_notification
+from app.utils.tracking_stream import broadcast_order_update
 
 @shared_task(name="order.created")
 def process_new_order(order_id):
@@ -22,6 +23,12 @@ def process_new_order(order_id):
             message=f"Your order {order.id} has been created successfully."
         )
 
+broadcast_order_update(order.tenant_id, "order_processed", {
+    "order_id": str(order.id),
+    "status": order.status,
+    "final_price": str(order.final_price),
+})
+        
         return f"Order {order_id} processed successfully."
 
     except Exception as e:
