@@ -89,8 +89,6 @@ volumes:
   redis_data:
 
 
-
-
 tenant-management:
     build:
       context: ../../backend/services/tenant-management
@@ -142,3 +140,17 @@ lmdsp-order-worker:
     depends_on:
       - lmdsp-order-service
       - redis
+
+
+
+lmdsp-order-asgi:
+    build:
+      context: ../../backend/services/lmdsp-order-service
+    command: daphne -b 0.0.0.0 -p 8003 config.asgi:application
+    ports:
+      - "8003:8003"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - lmdsp-order-service
