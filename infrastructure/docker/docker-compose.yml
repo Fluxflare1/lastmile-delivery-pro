@@ -129,3 +129,16 @@ lmdsp-order-service:
       test: ["CMD-SHELL", "curl -f http://localhost:8002/health/ || exit 1"]
       interval: 20s
       retries: 3
+
+
+
+lmdsp-order-worker:
+    build:
+      context: ../../backend/services/lmdsp-order-service
+    command: celery -A app.celery_app worker --loglevel=INFO
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgres://lm_user:lm_pass@postgres:5432/lmdsp_order_service
+    depends_on:
+      - lmdsp-order-service
+      - redis
