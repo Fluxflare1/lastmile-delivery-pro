@@ -128,3 +128,42 @@ CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+
+
+# ===============================
+# Security & CORS Configuration
+# ===============================
+CORS_ALLOWED_ORIGINS = [
+    "https://lastmile-delivery-pro.com",
+    "https://admin.lastmile-delivery-pro.com",
+]
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = ["https://lastmile-delivery-pro.com"]
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# ===============================
+# JWT Asymmetric Key Configuration
+# ===============================
+import jwt
+from jwt import algorithms
+
+PRIVATE_KEY_PATH = os.getenv("JWT_PRIVATE_KEY_PATH", "/run/secrets/jwt-private.pem")
+PUBLIC_KEY_PATH = os.getenv("JWT_PUBLIC_KEY_PATH", "/run/secrets/jwt-public.pem")
+
+with open(PRIVATE_KEY_PATH, "rb") as f:
+    PRIVATE_KEY = f.read()
+with open(PUBLIC_KEY_PATH, "rb") as f:
+    PUBLIC_KEY = f.read()
+
+SIMPLE_JWT.update({
+    "ALGORITHM": "RS256",
+    "SIGNING_KEY": PRIVATE_KEY,
+    "VERIFYING_KEY": PUBLIC_KEY,
+})
