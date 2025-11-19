@@ -105,3 +105,26 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+
+
+
+# ===========================
+# Email Configuration
+# ===========================
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.mailtrap.io")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = "no-reply@lastmile-delivery-pro.com"
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://lastmile-delivery-pro.com")
+
+# ===========================
+# Celery Configuration
+# ===========================
+CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
