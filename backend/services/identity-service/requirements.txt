@@ -1,0 +1,16 @@
+Django>=5.0
+djangorestframework>=3.15
+djangorestframework-simplejwt>=5.3
+dj-rest-auth>=6.0
+django-allauth>=0.60
+django-cors-headers>=4.3
+psycopg2-binary>=2.9
+redis>=5.0
+celery>=5.3
+python-dotenv>=1.0
+django-filter>=24.0
+django-redis>=5.4
+drf-spectacular>=0.27
+gunicorn>=21.2
+prometheus-client>=0.20
+requests>=2.31
