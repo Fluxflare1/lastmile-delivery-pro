@@ -108,3 +108,24 @@ tenant-management:
       test: ["CMD-SHELL", "curl -f http://localhost:8001/api/v1/tenants/ || exit 1"]
       interval: 20s
       retries: 3
+
+
+lmdsp-order-service:
+    build:
+      context: ../../backend/services/lmdsp-order-service
+    container_name: lmdsp-order-service
+    command: gunicorn src.config.wsgi:application --bind 0.0.0.0:8002
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgres://lm_user:lm_pass@postgres:5432/lmdsp_order_service
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+      - tenant-management
+      - identity-service
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health/ || exit 1"]
+      interval: 20s
+      retries: 3
