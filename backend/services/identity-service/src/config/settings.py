@@ -167,3 +167,15 @@ SIMPLE_JWT.update({
     "SIGNING_KEY": PRIVATE_KEY,
     "VERIFYING_KEY": PUBLIC_KEY,
 })
+
+
+
+
+import dj_database_url
+
+DATABASES = {
+    "default": dj_database_url.parse(
+        os.getenv("DATABASE_URL", "postgres://lm_user:lm_pass@postgres:5432/lastmile_identity"),
+        conn_max_age=600,
+    )
+}
