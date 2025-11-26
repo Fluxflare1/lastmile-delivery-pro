@@ -126,3 +126,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+
+ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:8000")
