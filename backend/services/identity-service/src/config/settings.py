@@ -179,3 +179,14 @@ DATABASES = {
         conn_max_age=600,
     )
 }
+
+
+# Channels & Redis Layer for Real-time Tracking
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, int(REDIS_PORT))],
+        },
+    },
+}
