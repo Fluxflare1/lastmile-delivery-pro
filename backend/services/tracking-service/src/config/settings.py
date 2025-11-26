@@ -129,3 +129,7 @@ CHANNEL_LAYERS = {
 
 
 ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:8000")
+
+
+
+"analytics-service": os.getenv("SERVICE_TOKEN_ANALYTICS", "analytics-secure-token"),
